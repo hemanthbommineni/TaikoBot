@@ -40,7 +40,7 @@ This BOT automates various tasks. Below is a detailed breakdown of the features 
 3. **Clone the repository:**
 
     ```sh
-    git clone https://github.com/0xFess/TaikoBot.git
+    git clone https://github.com/hemanthbommineni/TaikoBot.git
     ```
 
 4. **Navigate to the project directory:**
@@ -97,6 +97,8 @@ chmod +x setup-cron.sh
 ## CONTRIBUTE
 
 Feel free to fork and contribute adding more feature thanks.
+
+Credit to 
 
 ## SUPPORT
 Each tx contain tiny amount of tax to support next Bot with various features
