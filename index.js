@@ -46,7 +46,7 @@ async function executeTransaction(web3Instance, action, wallet, gasPriceWei, ...
             }
 
             const localNonce = await getNonce(web3Instance, wallet.address);
-            const txHash = await action(web3Instance, wallet, ...args, gasPriceWei.toString(), localNonce);
+            const txHash = await action(web3Instance, wallet, ...args, gasPriceWei.toString(), localNonce.toString());
             transactionCount++;
             return txHash;
         } catch (error) {
@@ -116,7 +116,7 @@ async function executeActionsForWallet(wallet) {
         // Lend
         let amount = Math.random() * (lendRangeMax - lendRangeMin) + lendRangeMin;
         amount = Math.floor(amount * 1_000_000);
-        let txHash = await executeTransaction(web3Instance, lendAmount, wallet, gasPriceWei, amount);
+        let txHash = await executeTransaction(web3Instance, lendAmount, wallet, gasPriceWei, amount.toString());
         if (!txHash) break;
         let txLink = `https://taikoscan.io/tx/${txHash}`;
         let amountDecimal = amount / 1_000_000;
@@ -150,7 +150,7 @@ async function executeActionsForWallet(wallet) {
         const wrapAmountMax = 0.0004;
         let wrapAmount = Math.random() * (wrapAmountMax - wrapAmountMin) + wrapAmountMin;
         wrapAmount = parseFloat(wrapAmount.toFixed(6));
-        let txHash = await executeTransaction(web3Instance, wrap, wallet, gasPriceWei, wrapAmount);
+        let txHash = await executeTransaction(web3Instance, wrap, wallet, gasPriceWei, wrapAmount.toString());
         if (!txHash) break;
         let txLink = `https://taikoscan.io/tx/${txHash}`;
         console.log(`Wrap Transaction sent: ${txLink}, \nAmount: ${wrapAmount} ETH`);
@@ -165,7 +165,7 @@ async function executeActionsForWallet(wallet) {
         }
 
         // Unwrap
-        txHash = await executeTransaction(web3Instance, unwrap, wallet, gasPriceWei, wrapAmount);
+        txHash = await executeTransaction(web3Instance, unwrap, wallet, gasPriceWei, wrapAmount.toString());
         if (!txHash) break;
         txLink = `https://taikoscan.io/tx/${txHash}`;
         console.log(`Unwrap Transaction sent: ${txLink}, \nAmount: ${wrapAmount} ETH`);
