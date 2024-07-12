@@ -45,9 +45,8 @@ async function executeTransaction(web3Instance, action, gasPriceWei, walletAddre
 async function main() {
     const maxTransactionsPerDay = 145;
     let transactionsToday = 0;
-
-    // Iterate over each wallet index (assuming sequential numbering)
     let walletIndex = 1;
+
     while (true) {
         const { walletAddress, privateKey } = getWalletDetails(walletIndex);
         if (!walletAddress || !privateKey) {
@@ -55,23 +54,14 @@ async function main() {
             break;
         }
 
-        // Initialize web3 instance for current wallet
         let web3Instance = getWeb3(privateKey);
 
-        // Check if we've reached the maximum transactions for today
-        if (transactionsToday >= maxTransactionsPerDay) {
-            console.log(`Wallet ${walletAddress}: Reached maximum transactions (${maxTransactionsPerDay}) for today. Exiting.`);
-            break;
-        }
-
-        // Execute wrap action for current wallet
+        // Execute transactions for the current wallet
         const gasPriceWei = randomGasPrice(web3Instance);
         const gasLimit = new BN(500000); 
         const totalTxCost = gasLimit.mul(gasPriceWei);
 
-        console.log(`Wallet ${walletAddress}: Gas Limit: ${gasLimit.toString()}, Gas Price: ${web3Instance.utils.fromWei(gasPriceWei, 'gwei')} Gwei`);
-        console.log(`Wallet ${walletAddress}: Total Tx Cost: ${web3Instance.utils.fromWei(totalTxCost.toString(), 'ether')} ETH`);
-
+        // Execute wrap action for current wallet
         const wrapAmountMin = 0.0003;
         const wrapAmountMax = 0.0004;
         let wrapAmount = Math.random() * (wrapAmountMax - wrapAmountMin) + wrapAmountMin;
