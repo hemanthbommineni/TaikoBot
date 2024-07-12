@@ -102,4 +102,16 @@ async function main() {
         unwrapAmount = parseFloat(unwrapAmount.toFixed(6));
         txHash = await executeTransaction(unwrap, gasPriceWei, unwrapAmount);
         if (!txHash) break;
-        txLink = `https://taikos
+        txLink = `https://taikoscan.io/tx/${txHash}`;
+        console.log(`Unwrap Transaction sent: ${txLink}, \nAmount: ${unwrapAmount} ETH`);
+
+        transactionsToday++;
+
+        // Wait for a random time between transactions (e.g., 5 minutes)
+        await new Promise(resolve => setTimeout(resolve, Math.random() * 300000));
+    }
+
+    console.log(`Completed transactions for today.`);
+}
+
+main().catch(console.error);
