@@ -21,7 +21,7 @@ async function getNonce(web3Instance) {
     return await web3Instance.eth.getTransactionCount(walletAddress, 'pending');
 }
 
-async function executeTransaction(action, gasPriceWei, localNonce, ...args) {
+async function executeTransaction(action, gasPriceWei, ...args) {
     let web3Instance = getWeb3();
     while (true) {
         try {
@@ -35,6 +35,7 @@ async function executeTransaction(action, gasPriceWei, localNonce, ...args) {
                 return;
             }
 
+            const localNonce = await getNonce(web3Instance);
             return await action(...args, gasPriceWei.toString(), localNonce);
         } catch (error) {
             console.error(`Error executing transaction: ${error.message}`);
@@ -43,12 +44,15 @@ async function executeTransaction(action, gasPriceWei, localNonce, ...args) {
                 web3Instance = switchRpc(); 
             } else if (error.message.includes("nonce too low")) {
                 console.log("Nonce too low, retrying with new nonce...");
-                localNonce = await getNonce(web3Instance);
             } else {
                 await new Promise(resolve => setTimeout(resolve, 5000)); 
             }
         }
     }
+}
+
+function delay(ms) {
+    return new Promise(resolve => setTimeout(resolve, ms));
 }
 
 async function main() {
@@ -60,7 +64,6 @@ async function main() {
 
     while (iterationCount < maxIterations) {
         const gasPriceWei = randomGasPrice(web3Instance);
-        let localNonce = await getNonce(web3Instance);
 
         const balanceWei = await web3Instance.eth.getBalance(walletAddress);
         const balance = new BN(balanceWei);
@@ -78,36 +81,35 @@ async function main() {
         // Lend
         let amount = Math.random() * (lendRangeMax - lendRangeMin) + lendRangeMin;
         amount = Math.floor(amount * 1_000_000);
-        let txHash = await executeTransaction(lendAmount, gasPriceWei, localNonce, amount);
+        let txHash = await executeTransaction(lendAmount, gasPriceWei, amount);
         if (!txHash) break;
-        localNonce++;
         let txLink = `https://taikoscan.io/tx/${txHash}`;
         let amountDecimal = amount / 1_000_000;
         console.log(`Lend Transaction sent: ${txLink}, \nAmount: ${amountDecimal} USDC \nGwei: ${web3Instance.utils.fromWei(gasPriceWei, 'gwei')} Gwei`);
 
+        await delay(300000); // Wait for 5 minutes
+
         // Redeem
-        localNonce = await getNonce(web3Instance);
-        txHash = await executeTransaction(redeem, gasPriceWei, localNonce);
+        txHash = await executeTransaction(redeem, gasPriceWei);
         if (!txHash) break;
-        localNonce++;
-        
+
+        await delay(300000); // Wait for 5 minutes
+
         // Wrap
         const wrapAmountMin = 0.0003;
         const wrapAmountMax = 0.0004;
         let wrapAmount = Math.random() * (wrapAmountMax - wrapAmountMin) + wrapAmountMin;
         wrapAmount = parseFloat(wrapAmount.toFixed(6));
-        localNonce = await getNonce(web3Instance);
-        txHash = await executeTransaction(wrap, gasPriceWei, localNonce, wrapAmount);
+        txHash = await executeTransaction(wrap, gasPriceWei, wrapAmount);
         if (!txHash) break;
-        localNonce++;
         txLink = `https://taikoscan.io/tx/${txHash}`;
         console.log(`Wrap Transaction sent: ${txLink}, \nAmount: ${wrapAmount} ETH`);
 
+        await delay(300000); // Wait for 5 minutes
+
         // Unwrap
-        localNonce = await getNonce(web3Instance);
-        txHash = await executeTransaction(unwrap, gasPriceWei, localNonce, wrapAmount);
+        txHash = await executeTransaction(unwrap, gasPriceWei, wrapAmount);
         if (!txHash) break;
-        localNonce++;
         txLink = `https://taikoscan.io/tx/${txHash}`;
         console.log(`Unwrap Transaction sent: ${txLink}, \nAmount: ${wrapAmount} ETH`);
 
