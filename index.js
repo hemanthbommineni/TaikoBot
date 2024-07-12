@@ -53,43 +53,28 @@ async function executeTransaction(action, gasPriceWei, ...args) {
 
 async function main() {
     let web3Instance = getWeb3();
-    const lendRangeMin = 1.0;
-    const lendRangeMax = 2.0;
-    const maxIterations = randomIterations();
-    let iterationCount = 0;
+    const maxTransactionsPerDay = 145;
+    let transactionsToday = 0;
 
-    while (iterationCount < maxIterations) {
+    while (true) {
+        // Check if we've reached the maximum transactions for today
+        if (transactionsToday >= maxTransactionsPerDay) {
+            console.log(`Reached maximum transactions (${maxTransactionsPerDay}) for today. Exiting.`);
+            break;
+        }
+
+        // Check if it's a new UTC day
+        const currentDate = new Date();
+        const currentDay = currentDate.getUTCDate();
+
+        // Execute wrap action
         const gasPriceWei = randomGasPrice(web3Instance);
-
-        const balanceWei = await web3Instance.eth.getBalance(walletAddress);
-        const balance = new BN(balanceWei);
         const gasLimit = new BN(500000); 
         const totalTxCost = gasLimit.mul(gasPriceWei);
 
         console.log(`Gas Limit: ${gasLimit.toString()}, Gas Price: ${web3Instance.utils.fromWei(gasPriceWei, 'gwei')} Gwei`);
         console.log(`Total Tx Cost: ${web3Instance.utils.fromWei(totalTxCost.toString(), 'ether')} ETH`);
 
-        if (balance.lt(totalTxCost)) {
-            console.log("Insufficient funds to cover the transaction cost. Transaction skipped.");
-            break;
-        }
-
-        /*
-        // Lend
-        let amount = Math.random() * (lendRangeMax - lendRangeMin) + lendRangeMin;
-        amount = Math.floor(amount * 1_000_000);
-        let txHash = await executeTransaction(lendAmount, gasPriceWei, amount);
-        if (!txHash) break;
-        let txLink = `https://taikoscan.io/tx/${txHash}`;
-        let amountDecimal = amount / 1_000_000;
-        console.log(`Lend Transaction sent: ${txLink}, \nAmount: ${amountDecimal} USDC \nGwei: ${web3Instance.utils.fromWei(gasPriceWei, 'gwei')} Gwei`);
-
-        // Redeem
-        txHash = await executeTransaction(redeem, gasPriceWei);
-        if (!txHash) break;
-        */
-
-        // Wrap
         const wrapAmountMin = 0.0003;
         const wrapAmountMax = 0.0004;
         let wrapAmount = Math.random() * (wrapAmountMax - wrapAmountMin) + wrapAmountMin;
@@ -99,16 +84,22 @@ async function main() {
         let txLink = `https://taikoscan.io/tx/${txHash}`;
         console.log(`Wrap Transaction sent: ${txLink}, \nAmount: ${wrapAmount} ETH`);
 
-        // Unwrap
-        txHash = await executeTransaction(unwrap, gasPriceWei, wrapAmount);
+        transactionsToday++;
+
+        // Wait for a random time between transactions (e.g., 5 minutes)
+        await new Promise(resolve => setTimeout(resolve, Math.random() * 300000));
+
+        // Check if we've reached the maximum transactions for today after wrap
+        if (transactionsToday >= maxTransactionsPerDay) {
+            console.log(`Reached maximum transactions (${maxTransactionsPerDay}) for today. Exiting.`);
+            break;
+        }
+
+        // Execute unwrap action
+        const unwrapAmountMin = 0.0003;
+        const unwrapAmountMax = 0.0004;
+        let unwrapAmount = Math.random() * (unwrapAmountMax - unwrapAmountMin) + unwrapAmountMin;
+        unwrapAmount = parseFloat(unwrapAmount.toFixed(6));
+        txHash = await executeTransaction(unwrap, gasPriceWei, unwrapAmount);
         if (!txHash) break;
-        txLink = `https://taikoscan.io/tx/${txHash}`;
-        console.log(`Unwrap Transaction sent: ${txLink}, \nAmount: ${wrapAmount} ETH`);
-
-        iterationCount++;
-    }
-
-    console.log(`Completed ${maxIterations} iterations. Exiting loop.`);
-}
-
-main().catch(console.error);
+        txLink = `https://taikos
