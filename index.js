@@ -1,20 +1,8 @@
 require('dotenv').config();
-const { getWeb3, switchRpc } = require('./config/web3');
+const { getWeb3, switchRpc, wallets } = require('./config/web3');
 const { wrap } = require('./src/module/wrap/wrap');
 const { unwrap } = require('./src/module/wrap/unwrap');
 const BN = require('bn.js');
-
-const wallets = [
-    {
-        address: process.env.WALLET_ADDRESS_1,
-        privateKey: process.env.PRIVATE_KEY_1
-    },
-    {
-        address: process.env.WALLET_ADDRESS_2,
-        privateKey: process.env.PRIVATE_KEY_2
-    }
-    // Add more wallets as needed
-];
 
 function randomGasPrice(web3Instance) {
     const minGwei = new BN(web3Instance.utils.toWei('0.05', 'gwei'));
@@ -23,16 +11,16 @@ function randomGasPrice(web3Instance) {
     return randomGwei;
 }
 
-async function getNonce(web3Instance, walletAddress) {
+function randomIterations() {
+    return Math.random() < 0.5 ? 7 : 8; 
+}
+
+async function getNonce(web3Instance) {
     return await web3Instance.eth.getTransactionCount(walletAddress, 'pending');
 }
 
-async function executeTransaction(action, gasPriceWei, walletAddress, privateKey, ...args) {
+async function executeTransaction(action, gasPriceWei, ...args) {
     let web3Instance = getWeb3();
-    let account = web3Instance.eth.accounts.privateKeyToAccount(privateKey);
-    web3Instance.eth.accounts.wallet.add(account);
-    web3Instance.eth.defaultAccount = account.address;
-
     while (true) {
         try {
             const gasLimit = new BN(100000);
@@ -41,16 +29,14 @@ async function executeTransaction(action, gasPriceWei, walletAddress, privateKey
             const balance = new BN(balanceWei);
 
             if (balance.lt(totalTxCost)) {
-                console.log(`Wallet ${walletAddress}: Insufficient funds to cover the transaction cost. Transaction skipped.`);
+                console.log("Insufficient funds to cover the transaction cost. Transaction skipped.");
                 return;
             }
 
-            const localNonce = await getNonce(web3Instance, walletAddress);
-            const nonce = new BN(localNonce);
-
-            return await action(...args, gasPriceWei.toString(), nonce.toString());
+            const localNonce = await getNonce(web3Instance);
+            return await action(...args, gasPriceWei.toString(), localNonce);
         } catch (error) {
-            console.error(`Wallet ${walletAddress}: Error executing transaction: ${error.message}`);
+            console.error(`Error executing transaction: ${error.message}`);
             if (error.message.includes("Invalid JSON RPC response")) {
                 console.log("Retrying...");
                 web3Instance = switchRpc(); 
@@ -64,39 +50,65 @@ async function executeTransaction(action, gasPriceWei, walletAddress, privateKey
 }
 
 async function main() {
-    let web3Instance = getWeb3();
-    const maxIterations = 145; // Limit to 145 transactions per day
-    let transactionCount = 0;
+    const wrapAmountMin = 0.0003;
+    const wrapAmountMax = 0.0004;
+    const maxTransactionsPerDay = Math.floor(Math.random() * (145 - 130 + 1)) + 130; // Random daily transaction limit
 
-    while (transactionCount < maxIterations) {
+    let totalTransactions = 0;
+    let currentDate = new Date().getUTCDate(); // UTC date to track daily transactions
+
+    while (totalTransactions < maxTransactionsPerDay) {
+        // Iterate through each wallet and perform transactions
         for (let i = 0; i < wallets.length; i++) {
-            const gasPriceWei = randomGasPrice(web3Instance);
-            const wallet = wallets[i];
-            const walletAddress = wallet.address;
-            const privateKey = wallet.privateKey;
+            const { web3, privateKey } = wallets[i];
+            const account = web3.eth.accounts.privateKeyToAccount(privateKey);
+            const walletAddress = account.address;
 
-            // Wrap
-            const wrapAmountMin = 0.0003;
-            const wrapAmountMax = 0.0004;
+            const gasPriceWei = randomGasPrice(web3);
+
+            const balanceWei = await web3.eth.getBalance(walletAddress);
+            const balance = new BN(balanceWei);
+            const gasLimit = new BN(500000); 
+            const totalTxCost = gasLimit.mul(gasPriceWei);
+
+            console.log(`Wallet Address: ${walletAddress}`);
+            console.log(`Gas Limit: ${gasLimit.toString()}, Gas Price: ${web3.utils.fromWei(gasPriceWei, 'gwei')} Gwei`);
+            console.log(`Total Tx Cost: ${web3.utils.fromWei(totalTxCost.toString(), 'ether')} ETH`);
+
+            if (balance.lt(totalTxCost)) {
+                console.log("Insufficient funds to cover the transaction cost. Transaction skipped.");
+                continue;
+            }
+
+            // Wrap (Example transaction)
             let wrapAmount = Math.random() * (wrapAmountMax - wrapAmountMin) + wrapAmountMin;
             wrapAmount = parseFloat(wrapAmount.toFixed(6));
-            let txHash = await executeTransaction(wrap, gasPriceWei, walletAddress, privateKey, wrapAmount);
-            if (!txHash) break;
+            let txHash = await executeTransaction(wrap, gasPriceWei, wrapAmount);
+            if (!txHash) continue;
             let txLink = `https://taikoscan.io/tx/${txHash}`;
-            console.log(`Wallet ${walletAddress}: Wrap Transaction sent: ${txLink}, \nAmount: ${wrapAmount} ETH`);
+            console.log(`Wrap Transaction sent: ${txLink}, \nAmount: ${wrapAmount} ETH`);
 
-            // Unwrap
-            txHash = await executeTransaction(unwrap, gasPriceWei, walletAddress, privateKey, wrapAmount);
-            if (!txHash) break;
+            // Unwrap (Example transaction)
+            txHash = await executeTransaction(unwrap, gasPriceWei, wrapAmount);
+            if (!txHash) continue;
             txLink = `https://taikoscan.io/tx/${txHash}`;
-            console.log(`Wallet ${walletAddress}: Unwrap Transaction sent: ${txLink}, \nAmount: ${wrapAmount} ETH`);
+            console.log(`Unwrap Transaction sent: ${txLink}, \nAmount: ${wrapAmount} ETH`);
 
-            transactionCount++;
-            if (transactionCount >= maxIterations) break;
+            totalTransactions++;
+
+            // Random wait time between transactions
+            const waitTime = Math.floor(Math.random() * (10 - 5 + 1)) + 5; // Random wait between 5 to 10 seconds
+            await new Promise(resolve => setTimeout(resolve, waitTime * 1000));
+        }
+
+        // Check if date has changed (UTC date)
+        if (new Date().getUTCDate() !== currentDate) {
+            totalTransactions = 0; // Reset daily transaction count if date changes
+            currentDate = new Date().getUTCDate();
         }
     }
 
-    console.log(`Completed ${transactionCount} transactions.`);
+    console.log(`Reached daily transaction limit (${maxTransactionsPerDay}). Exiting...`);
 }
 
 main().catch(console.error);
