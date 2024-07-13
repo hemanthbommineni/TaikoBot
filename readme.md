@@ -6,7 +6,7 @@ This Taiko transaction bot is a daily routine bot, its job is to complete transa
 
 To run this bot you need to:
 
-- Taiko Mainnet Account 0.01 ETH Balance.
+- Taiko Mainnet Account 0.001 ETH Balance.
 - Node.js Installed.
 
 ## BOT Feature Overview
@@ -83,9 +83,13 @@ cd TaikoBot
 vi .env
 ```
 
-WALLET_ADDRESS=your_wallet_address_here
+  
+WALLET_ADDRESS_1=''
+PRIVATE_KEY_1=''
 
-PRIVATE_KEY=your_private_key_here
+WALLET_ADDRESS_2=''	
+PRIVATE_KEY_2=''
+
 
 ### One-time Run
 
