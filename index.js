@@ -101,6 +101,7 @@ async function runTransactionsForWallet(wallet, walletIndex) {
 
         iterationCount++;
         const waitTime = Math.floor(Math.random() * (24 * 60 * 60 * 1000 / maxIterations)); // Random wait time within the day
+        console.log(`Wallet ${walletIndex + 1}, Transaction ${iterationCount + 1}: Waiting for ${waitTime / 1000} seconds before the next transaction.`);
         await new Promise(resolve => setTimeout(resolve, waitTime));
     }
 }
