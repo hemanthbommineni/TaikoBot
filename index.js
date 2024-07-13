@@ -12,8 +12,40 @@ const wallets = [
     {
         address: process.env.WALLET_ADDRESS_2,
         privateKey: process.env.PRIVATE_KEY_2
+    },
+    {
+        address: process.env.WALLET_ADDRESS_3,
+        privateKey: process.env.PRIVATE_KEY_3
+    },
+    {
+        address: process.env.WALLET_ADDRESS_4,
+        privateKey: process.env.PRIVATE_KEY_4
+    },
+    {
+        address: process.env.WALLET_ADDRESS_5,
+        privateKey: process.env.PRIVATE_KEY_5
+    },
+    {
+        address: process.env.WALLET_ADDRESS_6,
+        privateKey: process.env.PRIVATE_KEY_6
+    },
+    {
+        address: process.env.WALLET_ADDRESS_7,
+        privateKey: process.env.PRIVATE_KEY_7
+    },
+    {
+        address: process.env.WALLET_ADDRESS_8,
+        privateKey: process.env.PRIVATE_KEY_8
+    },
+    {
+        address: process.env.WALLET_ADDRESS_9,
+        privateKey: process.env.PRIVATE_KEY_9
+    },
+    {
+        address: process.env.WALLET_ADDRESS_10,
+        privateKey: process.env.PRIVATE_KEY_10
     }
-    // Add more wallets as needed
+    
 ];
 
 function randomGasPrice(web3Instance) {
