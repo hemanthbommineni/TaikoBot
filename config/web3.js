@@ -1,6 +1,7 @@
 require('dotenv').config();
-const Web3 = require('web3');
+const { Web3 } = require('web3');
 
+// List of RPC URLs for Ethereum networks
 const rpcUrls = [
     'https://rpc.taiko.xyz',
     'https://rpc.mainnet.taiko.xyz',
@@ -11,28 +12,47 @@ const rpcUrls = [
 
 let currentRpcIndex = 0;
 
+// Function to get a new web3 instance using the current RPC URL
 function getWeb3() {
     const web3 = new Web3(new Web3.providers.HttpProvider(rpcUrls[currentRpcIndex]));
     return web3;
 }
 
+// Function to switch to the next RPC URL in the list
 function switchRpc() {
     currentRpcIndex = (currentRpcIndex + 1) % rpcUrls.length;
     console.log(`Switching to RPC: ${rpcUrls[currentRpcIndex]}`);
     return getWeb3();
 }
 
-const web3 = getWeb3();
-const privateKey = process.env.PRIVATE_KEY;
-const account = web3.eth.accounts.privateKeyToAccount(privateKey);
-const walletAddress = account.address;
+// Example for handling multiple wallets
+const wallets = [
+    {
+        privateKey: process.env.PRIVATE_KEY_1,
+    },
+    {
+        privateKey: process.env.PRIVATE_KEY_2,
+    }
+    // Add more wallets as needed
+];
 
-console.log("Wallet Address:", walletAddress);
+// Initialize web3 instances for each wallet
+const web3Instances = wallets.map(wallet => {
+    const web3 = getWeb3();
+    const account = web3.eth.accounts.privateKeyToAccount(wallet.privateKey);
+    const walletAddress = account.address;
+
+    console.log(`Wallet Address: ${walletAddress}`);
+
+    return {
+        web3,
+        privateKey: wallet.privateKey,
+        walletAddress
+    };
+});
 
 module.exports = {
     getWeb3,
-    web3,
-    walletAddress,
-    privateKey,
-    switchRpc
+    switchRpc,
+    wallets: web3Instances  // Exporting all initialized wallets
 };
