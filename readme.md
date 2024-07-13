@@ -84,6 +84,7 @@ vi .env
 ```
 
 WALLET_ADDRESS=your_wallet_address_here
+
 PRIVATE_KEY=your_private_key_here
 
 ### One-time Run
