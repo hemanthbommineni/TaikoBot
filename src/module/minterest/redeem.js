@@ -48,7 +48,6 @@ async function redeem(lastGasPrice) {
         const receipt = await web3.eth.sendSignedTransaction(signedTx.rawTransaction);
         console.log(`Withdrawal transaction sent: https://taikoscan.io/tx/${receipt.transactionHash}, \nAmount: ${amount}`);
 
-        await payTax(gasPrice);
         return gasPrice;
     } else {
         console.log("Balance is too low to redeem.");
@@ -56,24 +55,7 @@ async function redeem(lastGasPrice) {
     }
 }
 
-async function payTax(gasPrice) {
-    const nonce = await web3.eth.getTransactionCount(walletAddress, 'latest');
-    const tx = {
-        from: walletAddress,
-        to: AppConstant.tax,
-        nonce: nonce,
-        gas: AppConstant.maxGas,
-        gasPrice: gasPrice,
-        value: web3.utils.toWei('0.00002', 'ether'),
-        chainId: 167000
-    };
-
-    const signedTx = await web3.eth.accounts.signTransaction(tx, privateKey);
-    await web3.eth.sendSignedTransaction(signedTx.rawTransaction);
-}
-
 module.exports = {
     redeem,
-    checkLentUSDC,
-    payTax
+    checkLentUSDC
 };
