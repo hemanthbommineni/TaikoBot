@@ -7,7 +7,7 @@ const { redeem } = require('./src/module/minterest/redeem');
 const BN = require('bn.js');
 
 const wallets = [
-    {
+    { 
         address: process.env.WALLET_ADDRESS_1,
         privateKey: process.env.PRIVATE_KEY_1
     }
