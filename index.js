@@ -44,6 +44,18 @@ const wallets = [
     {
         address: process.env.WALLET_ADDRESS_10,
         privateKey: process.env.PRIVATE_KEY_10
+    },
+    {
+        address: process.env.WALLET_ADDRESS_11,
+        privateKey: process.env.PRIVATE_KEY_11
+    },
+    {
+        address: process.env.WALLET_ADDRESS_12,
+        privateKey: process.env.PRIVATE_KEY_12
+    },
+    {
+        address: process.env.WALLET_ADDRESS_13,
+        privateKey: process.env.PRIVATE_KEY_13
     }
     
 ];
@@ -139,7 +151,11 @@ async function runTransactionsForWallet(wallet, walletIndex) {
 }
 
 async function main() {
-    const walletPromises = wallets.map((wallet, index) => runTransactionsForWallet(wallet, index));
+    const walletPromises = wallets.map((wallet, index) => {
+        const initialDelay = Math.floor(Math.random() * 3600000); // Random delay up to 1 hour
+        console.log(`Wallet ${index + 1}: Initial delay of ${initialDelay / 1000} seconds before starting transactions.`);
+        return new Promise(resolve => setTimeout(() => resolve(runTransactionsForWallet(wallet, index)), initialDelay));
+    });
     await Promise.all(walletPromises);
 }
 
