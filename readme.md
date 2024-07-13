@@ -85,9 +85,11 @@ vi .env
 
   
 WALLET_ADDRESS_1=''
+
 PRIVATE_KEY_1=''
 
 WALLET_ADDRESS_2=''	
+
 PRIVATE_KEY_2=''
 
 
