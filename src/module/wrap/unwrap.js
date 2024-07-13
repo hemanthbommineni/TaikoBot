@@ -1,4 +1,3 @@
-require('dotenv').config();
 const { getWeb3 } = require('../../../config/web3');
 const AppConstant = require('../../utils/constant');
 
@@ -23,8 +22,8 @@ const contractABI = [
 async function unwrap(amount, gasPrice, nonce, walletAddress, privateKey) {
     const web3 = getWeb3();
     const contract = new web3.eth.Contract(contractABI, AppConstant.wrap);
-    
-    const amountWei = web3.utils.toWei(amount.toString(), 'ether'); // Convert amount to wei
+
+    const amountWei = web3.utils.toWei(amount.toString(), 'ether');
     const tx = {
         from: walletAddress,
         to: AppConstant.wrap,
