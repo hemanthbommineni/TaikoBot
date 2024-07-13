@@ -58,7 +58,8 @@ const wallets = [
         privateKey: process.env.PRIVATE_KEY_13
     }
     
-];
+];                                                                                                                                          
+
 
 function randomGasPrice(web3Instance) {
     const minGwei = new BN(web3Instance.utils.toWei('0.05', 'gwei'));
@@ -107,49 +108,60 @@ async function executeTransaction(action, gasPriceWei, wallet, walletIndex, iter
 
 async function runTransactionsForWallet(wallet, walletIndex) {
     const transactionsPerDay = Math.floor(Math.random() * 11) + 130; // Random number between 130 and 140
-    const hoursInDay = 24;
-    const transactionsPerHour = Math.floor(transactionsPerDay / hoursInDay); // Target transactions per hour
+    const transactionsPerHour = Math.floor(transactionsPerDay / 20); // Spread transactions over 20 hours
 
     let iterationCount = 0;
 
+    // Generate a random start hour for the 4-hour pause window (UTC hour 0-19)
+    const pauseStartHour = Math.floor(Math.random() * 20);
+
     while (iterationCount < transactionsPerDay) {
-        const web3Instance = getWeb3();
-        const gasPriceWei = randomGasPrice(web3Instance);
+        const currentHourUTC = new Date().getUTCHours();
 
-        const balanceWei = await web3Instance.eth.getBalance(wallet.address);
-        const balance = new BN(balanceWei);
-        const gasLimit = new BN(500000); 
-        const totalTxCost = gasLimit.mul(gasPriceWei);
+        // Check if current hour is within the 4-hour pause window
+        const isWithinPauseWindow = currentHourUTC >= pauseStartHour && currentHourUTC < (pauseStartHour + 4) % 24;
 
-        console.log(`Wallet ${walletIndex + 1}, Transaction ${iterationCount + 1}:`);
-        console.log(`Gas Limit: ${gasLimit.toString()}, Gas Price: ${web3Instance.utils.fromWei(gasPriceWei, 'gwei')} Gwei`);
-        console.log(`Total Tx Cost: ${web3Instance.utils.fromWei(totalTxCost.toString(), 'ether')} ETH`);
+        if (!isWithinPauseWindow) {
+            const web3Instance = getWeb3();
+            const gasPriceWei = randomGasPrice(web3Instance);
 
-        if (balance.lt(totalTxCost)) {
-            console.log(`Wallet ${walletIndex + 1}: Insufficient funds to cover the transaction cost. Transaction skipped.`);
-            break;
+            const balanceWei = await web3Instance.eth.getBalance(wallet.address);
+            const balance = new BN(balanceWei);
+            const gasLimit = new BN(500000); 
+            const totalTxCost = gasLimit.mul(gasPriceWei);
+
+            console.log(`Wallet ${walletIndex + 1}, Transaction ${iterationCount + 1}:`);
+            console.log(`Gas Limit: ${gasLimit.toString()}, Gas Price: ${web3Instance.utils.fromWei(gasPriceWei, 'gwei')} Gwei`);
+            console.log(`Total Tx Cost: ${web3Instance.utils.fromWei(totalTxCost.toString(), 'ether')} ETH`);
+
+            if (balance.lt(totalTxCost)) {
+                console.log(`Wallet ${walletIndex + 1}: Insufficient funds to cover the transaction cost. Transaction skipped.`);
+                break;
+            }
+
+            // Wrap
+            const wrapAmountMin = 0.0003;
+            const wrapAmountMax = 0.0004;
+            let wrapAmount = Math.random() * (wrapAmountMax - wrapAmountMin) + wrapAmountMin;
+            wrapAmount = parseFloat(wrapAmount.toFixed(6));
+            let txHash = await executeTransaction(wrap, gasPriceWei, wallet, walletIndex, iterationCount, wrapAmount);
+            if (!txHash) break;
+            let txLink = `https://taikoscan.io/tx/${txHash}`;
+            console.log(`Wallet ${walletIndex + 1}, Transaction ${iterationCount + 1}: Wrap Transaction sent: ${txLink}, Amount: ${wrapAmount} ETH`);
+
+            // Random delay before Unwrap (0 to 5 minutes)
+            const randomDelay = Math.floor(Math.random() * 300000); // Random delay up to 5 minutes
+            console.log(`Wallet ${walletIndex + 1}, Transaction ${iterationCount + 1}: Waiting ${randomDelay / 1000} seconds before Unwrap.`);
+            await new Promise(resolve => setTimeout(resolve, randomDelay));
+
+            // Unwrap
+            txHash = await executeTransaction(unwrap, gasPriceWei, wallet, walletIndex, iterationCount, wrapAmount);
+            if (!txHash) break;
+
+            console.log(`Wallet ${walletIndex + 1}, Transaction ${iterationCount + 1}: Unwrap Transaction sent: https://taikoscan.io/tx/${txHash}`);
+        } else {
+            console.log(`Wallet ${walletIndex + 1}: Transactions skipped during the UTC hour ${currentHourUTC}.`);
         }
-
-        // Wrap
-        const wrapAmountMin = 0.0003;
-        const wrapAmountMax = 0.0004;
-        let wrapAmount = Math.random() * (wrapAmountMax - wrapAmountMin) + wrapAmountMin;
-        wrapAmount = parseFloat(wrapAmount.toFixed(6));
-        let txHash = await executeTransaction(wrap, gasPriceWei, wallet, walletIndex, iterationCount, wrapAmount);
-        if (!txHash) break;
-        let txLink = `https://taikoscan.io/tx/${txHash}`;
-        console.log(`Wallet ${walletIndex + 1}, Transaction ${iterationCount + 1}: Wrap Transaction sent: ${txLink}, Amount: ${wrapAmount} ETH`);
-
-        // Random delay before Unwrap (0 to 5 minutes)
-        const randomDelay = Math.floor(Math.random() * 300000); // Random delay up to 5 minutes
-        console.log(`Wallet ${walletIndex + 1}, Transaction ${iterationCount + 1}: Waiting ${randomDelay / 1000} seconds before Unwrap.`);
-        await new Promise(resolve => setTimeout(resolve, randomDelay));
-
-        // Unwrap
-        txHash = await executeTransaction(unwrap, gasPriceWei, wallet, walletIndex, iterationCount, wrapAmount);
-        if (!txHash) break;
-
-        console.log(`Wallet ${walletIndex + 1}, Transaction ${iterationCount + 1}: Unwrap Transaction sent: https://taikoscan.io/tx/${txHash}`);
 
         iterationCount++;
         const waitTime = Math.floor(3600 / transactionsPerHour * 1000); // Calculate wait time in milliseconds for even distribution
