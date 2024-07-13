@@ -1,12 +1,12 @@
 # Taiko Transaction Bot
 
-This Taiko transaction bot is a daily routine bot, its job is to complete transactions within the range of 136 to 144 transactions, with each transaction having a randomized interval between 50 seconds to 330 seconds.
+This Taiko transaction bot is a daily routine bot, its job is to complete transactions within the range of 140 to 144 transactions within an UTC day, with each transaction having a randomized interval between 50 seconds to 330 seconds.
 
 ## Prerequisite
 
 To run this bot you need to:
 
-- Taiko Mainnet Account with > 2 USDC AND > 0.05 ETH Balance.
+- Taiko Mainnet Account 0.05 ETH Balance.
 - Node.js Installed.
 
 ## BOT Feature Overview
@@ -15,11 +15,10 @@ This BOT automates various tasks. Below is a detailed breakdown of the features 
 
 ### Bot Feature
 
-- Lends a random amount between 1 USDC to 2 USDC into the minterest Dapp.
-- Withdraws all USDC from the minterest Dapp.
 - Wraps a random amount between 0.0003 ETH to 0.0005 ETH to WETH.
 - Unwraps all WETH back to ETH.
 - This bot will repeat all transactions until it reaches the daily max point.
+
 
 ## Set Up
 
@@ -75,6 +74,14 @@ This BOT automates various tasks. Below is a detailed breakdown of the features 
 
 ## Running the Bot
 
+confirm .env file is accurate and looks like this
+
+cd TaikoBot
+vi .env
+
+WALLET_ADDRESS=your_wallet_address_here
+PRIVATE_KEY=your_private_key_here
+
 ### One-time Run
 
 To run the bot once:
@@ -82,6 +89,14 @@ To run the bot once:
 ```sh
 npm run start
 ```
+### Run in the background
+
+sudo apt update && sudo apt upgrade -y
+sudo apt-get install screen git nano -y
+
+screen -S taiko
+cd TaikoBot
+npm start
 ### Scheduled Run
 
 To set up the bot to run every day at 1:30 AM UTC, follow these steps:
@@ -94,11 +109,18 @@ chmod +x setup-cron.sh
 ```sh
 ./setup-cron.sh
 ```
+### Next udpates
+
+- Lends a random amount between 1 USDC to 2 USDC into the minterest Dapp.
+- Withdraws all USDC from the minterest Dapp
+- Multiple wallets support (currently only one wallets is supported
+
 ## CONTRIBUTE
 
-Feel free to fork and contribute adding more feature thanks.
+Feel free to fork and contribute.
 
-Credit to https://github.com/0xFess
+Credit to https://github.com/0xFess , as i forked the baseline from his repo.
 
 ## SUPPORT
+Telegram : @tango20_20 , for any help with suppport.
 Each tx contain tiny amount of tax to support next Bot with various features
