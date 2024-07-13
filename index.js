@@ -2,64 +2,17 @@ require('dotenv').config();
 const { getWeb3, switchRpc } = require('./config/web3');
 const { wrap } = require('./src/module/wrap/wrap');
 const { unwrap } = require('./src/module/wrap/unwrap');
+const { lendAmount } = require('./src/module/lend/lend');
+const { redeem } = require('./src/module/redeem/redeem');
 const BN = require('bn.js');
 
 const wallets = [
     {
         address: process.env.WALLET_ADDRESS_1,
         privateKey: process.env.PRIVATE_KEY_1
-    },
-    {
-        address: process.env.WALLET_ADDRESS_2,
-        privateKey: process.env.PRIVATE_KEY_2
-    },
-    {
-        address: process.env.WALLET_ADDRESS_3,
-        privateKey: process.env.PRIVATE_KEY_3
-    },
-    {
-        address: process.env.WALLET_ADDRESS_4,
-        privateKey: process.env.PRIVATE_KEY_4
-    },
-    {
-        address: process.env.WALLET_ADDRESS_5,
-        privateKey: process.env.PRIVATE_KEY_5
-    },
-    {
-        address: process.env.WALLET_ADDRESS_6,
-        privateKey: process.env.PRIVATE_KEY_6
-    },
-    {
-        address: process.env.WALLET_ADDRESS_7,
-        privateKey: process.env.PRIVATE_KEY_7
-    },
-    {
-        address: process.env.WALLET_ADDRESS_8,
-        privateKey: process.env.PRIVATE_KEY_8
-    },
-    {
-        address: process.env.WALLET_ADDRESS_9,
-        privateKey: process.env.PRIVATE_KEY_9
-    },
-    {
-        address: process.env.WALLET_ADDRESS_10,
-        privateKey: process.env.PRIVATE_KEY_10
-    },
-    {
-        address: process.env.WALLET_ADDRESS_11,
-        privateKey: process.env.PRIVATE_KEY_11
-    },
-    {
-        address: process.env.WALLET_ADDRESS_12,
-        privateKey: process.env.PRIVATE_KEY_12
-    },
-    {
-        address: process.env.WALLET_ADDRESS_13,
-        privateKey: process.env.PRIVATE_KEY_13
     }
-    
-];                                                                                                                                          
-
+    // Add more wallets as needed
+];
 
 function randomGasPrice(web3Instance) {
     const minGwei = new BN(web3Instance.utils.toWei('0.05', 'gwei'));
@@ -68,8 +21,8 @@ function randomGasPrice(web3Instance) {
     return randomGwei;
 }
 
-function randomTransactionsPerHour() {
-    return Math.floor(Math.random() * 3) + 6; // Random number between 6 and 8 transactions per hour
+function randomIterations() {
+    return Math.floor(Math.random() * 11) + 135; // Random number between 135 and 145
 }
 
 async function getNonce(web3Instance, walletAddress) {
@@ -91,82 +44,69 @@ async function executeTransaction(action, gasPriceWei, wallet, walletIndex, iter
             }
 
             const localNonce = await getNonce(web3Instance, wallet.address);
-            return await action(...args, gasPriceWei.toString(), localNonce, wallet.address, wallet.privateKey);
+            const txHash = await action(...args, gasPriceWei.toString(), localNonce, wallet.address, wallet.privateKey);
+            if (txHash) {
+                console.log(`Wallet ${walletIndex + 1}, Transaction ${iterationCount + 1}: ${action.name} Transaction sent, TX Hash: ${txHash}`);
+            }
+
+            // Random wait time between operations
+            const waitTime = Math.floor(Math.random() * (5 * 60 * 1000)); // Random wait time up to 5 minutes
+            console.log(`Wallet ${walletIndex + 1}, Transaction ${iterationCount + 1}: Waiting for ${waitTime / 1000} seconds before the next transaction.`);
+            await new Promise(resolve => setTimeout(resolve, waitTime));
+
+            return txHash; // Return transaction hash if successful
         } catch (error) {
-            console.error(`Wallet ${walletIndex + 1}, Transaction ${iterationCount + 1}: Error executing transaction: ${error.message}`);
+            console.error(`Wallet ${walletIndex + 1}, Transaction ${iterationCount + 1}: Error executing ${action.name} transaction: ${error.message}`);
             if (error.message.includes("Invalid JSON RPC response")) {
                 console.log("Retrying...");
                 web3Instance = switchRpc(); 
             } else if (error.message.includes("nonce too low")) {
                 console.log("Nonce too low, retrying with new nonce...");
             } else {
-                await new Promise(resolve => setTimeout(resolve, 5000)); 
+                // Handle specific errors gracefully or log them
+                console.log(`Wallet ${walletIndex + 1}, Transaction ${iterationCount + 1}: Operation failed, moving to the next operation.`);
+                return; // Exit the function if an error occurs to move to the next operation
             }
         }
     }
 }
 
 async function runTransactionsForWallet(wallet, walletIndex) {
-    const transactionsPerDay = Math.floor(Math.random() * 11) + 130; // Random number between 130 and 140
-    const transactionsPerHour = Math.floor(transactionsPerDay / 20); // Spread transactions over 20 hours
-
+    const maxIterations = randomIterations();
     let iterationCount = 0;
 
-    // Generate a random start hour for the 4-hour pause window (UTC hour 0-19)
-    const pauseStartHour = Math.floor(Math.random() * 20);
+    while (iterationCount < maxIterations) {
+        const web3Instance = getWeb3();
+        const gasPriceWei = randomGasPrice(web3Instance);
 
-    while (iterationCount < transactionsPerDay) {
-        const currentHourUTC = new Date().getUTCHours();
+        const balanceWei = await web3Instance.eth.getBalance(wallet.address);
+        const balance = new BN(balanceWei);
+        const gasLimit = new BN(500000); 
+        const totalTxCost = gasLimit.mul(gasPriceWei);
 
-        // Check if current hour is within the 4-hour pause window
-        const isWithinPauseWindow = currentHourUTC >= pauseStartHour && currentHourUTC < (pauseStartHour + 4) % 24;
+        console.log(`Wallet ${walletIndex + 1}, Transaction ${iterationCount + 1}:`);
+        console.log(`Gas Limit: ${gasLimit.toString()}, Gas Price: ${web3Instance.utils.fromWei(gasPriceWei, 'gwei')} Gwei`);
+        console.log(`Total Tx Cost: ${web3Instance.utils.fromWei(totalTxCost.toString(), 'ether')} ETH`);
 
-        if (!isWithinPauseWindow) {
-            const web3Instance = getWeb3();
-            const gasPriceWei = randomGasPrice(web3Instance);
-
-            const balanceWei = await web3Instance.eth.getBalance(wallet.address);
-            const balance = new BN(balanceWei);
-            const gasLimit = new BN(500000); 
-            const totalTxCost = gasLimit.mul(gasPriceWei);
-
-            console.log(`Wallet ${walletIndex + 1}, Transaction ${iterationCount + 1}:`);
-            console.log(`Gas Limit: ${gasLimit.toString()}, Gas Price: ${web3Instance.utils.fromWei(gasPriceWei, 'gwei')} Gwei`);
-            console.log(`Total Tx Cost: ${web3Instance.utils.fromWei(totalTxCost.toString(), 'ether')} ETH`);
-
-            if (balance.lt(totalTxCost)) {
-                console.log(`Wallet ${walletIndex + 1}: Insufficient funds to cover the transaction cost. Transaction skipped.`);
-                break;
-            }
-
-            // Wrap
-            const wrapAmountMin = 0.0003;
-            const wrapAmountMax = 0.0004;
-            let wrapAmount = Math.random() * (wrapAmountMax - wrapAmountMin) + wrapAmountMin;
-            wrapAmount = parseFloat(wrapAmount.toFixed(6));
-            let txHash = await executeTransaction(wrap, gasPriceWei, wallet, walletIndex, iterationCount, wrapAmount);
-            if (!txHash) break;
-            let txLink = `https://taikoscan.io/tx/${txHash}`;
-            console.log(`Wallet ${walletIndex + 1}, Transaction ${iterationCount + 1}: Wrap Transaction sent: ${txLink}, Amount: ${wrapAmount} ETH`);
-
-            // Random delay before Unwrap (0 to 5 minutes)
-            const randomDelay = Math.floor(Math.random() * 300000); // Random delay up to 5 minutes
-            console.log(`Wallet ${walletIndex + 1}, Transaction ${iterationCount + 1}: Waiting ${randomDelay / 1000} seconds before Unwrap.`);
-            await new Promise(resolve => setTimeout(resolve, randomDelay));
-
-            // Unwrap
-            txHash = await executeTransaction(unwrap, gasPriceWei, wallet, walletIndex, iterationCount, wrapAmount);
-            if (!txHash) break;
-
-            console.log(`Wallet ${walletIndex + 1}, Transaction ${iterationCount + 1}: Unwrap Transaction sent: https://taikoscan.io/tx/${txHash}`);
-        } else {
-            console.log(`Wallet ${walletIndex + 1}: Transactions skipped during the UTC hour ${currentHourUTC}.`);
+        if (balance.lt(totalTxCost)) {
+            console.log(`Wallet ${walletIndex + 1}: Insufficient funds to cover the transaction cost. Transaction skipped.`);
+            break;
         }
 
+        // Randomly select an operation to execute
+        const operations = [
+            { action: wrap, name: 'Wrap' },
+            { action: unwrap, name: 'Unwrap' },
+            { action: lendAmount, name: 'Lend' },
+            { action: redeem, name: 'Redeem' }
+        ];
+        const operationIndex = Math.floor(Math.random() * operations.length);
+        const selectedOperation = operations[operationIndex];
+
+        // Execute selected operation
+        await executeTransaction(selectedOperation.action, gasPriceWei, wallet, walletIndex, iterationCount, gasPriceWei);
+
         iterationCount++;
-        const waitTime = Math.floor(3600 / transactionsPerHour * 1000); // Calculate wait time in milliseconds for even distribution
-        console.log(`Wallet ${walletIndex + 1}, Transaction ${iterationCount + 1}: Waiting for ${waitTime / 1000} seconds before the next transaction.`);
-        await new Promise(resolve => setTimeout(resolve, waitTime));
     }
 }
 
@@ -179,4 +119,4 @@ async function main() {
     await Promise.all(walletPromises);
 }
 
-main().catch(console.error);
+main();
