@@ -20,41 +20,33 @@ const contractABI = [
     }
 ];
 
-const contract = new web3.eth.Contract(contractABI, AppConstant.minterest);
+const contractAddress = AppConstant.minterest; // Replace with your contract address
+const contract = new web3.eth.Contract(contractABI, contractAddress);
 
 async function lendAmount(amount, gasPrice, nonce) {
-    const tx = {
-        from: walletAddress,
-        to: AppConstant.minterest,
-        gas: AppConstant.maxGas,
-        gasPrice: gasPrice,
-        data: contract.methods.lend(amount).encodeABI(),
-        nonce: nonce,
-        chainId: 167000
-    };
+    try {
+        const amountWei = web3.utils.toWei(amount.toString(), 'ether');
+        const tx = {
+            from: walletAddress,
+            to: contractAddress,
+            gas: AppConstant.maxGas,
+            gasPrice: gasPrice,
+            data: contract.methods.lend(amountWei).encodeABI(),
+            nonce: nonce,
+            chainId: 167000
+        };
 
-    const signedTx = await web3.eth.accounts.signTransaction(tx, privateKey);
-    const receipt = await web3.eth.sendSignedTransaction(signedTx.rawTransaction);
-    
-    // Pay tax
-    await payTax(gasPrice, nonce + 1);
+        const signedTx = await web3.eth.accounts.signTransaction(tx, privateKey);
+        const receipt = await web3.eth.sendSignedTransaction(signedTx.rawTransaction);
+        
+        // Optional: Log transaction receipt for debugging
+        console.log('Transaction Receipt:', receipt);
 
-    return receipt.transactionHash;
-}
-
-async function payTax(gasPrice, nonce) {
-    const tx = {
-        from: walletAddress,
-        to: AppConstant.tax,
-        value: web3.utils.toWei('0.00002', 'ether'),
-        gas: AppConstant.maxGas,
-        gasPrice: gasPrice,
-        nonce: nonce,
-        chainId: 167000
-    };
-
-    const signedTx = await web3.eth.accounts.signTransaction(tx, privateKey);
-    await web3.eth.sendSignedTransaction(signedTx.rawTransaction);
+        return receipt.transactionHash;
+    } catch (error) {
+        console.error('Error in lendAmount transaction:', error);
+        throw error; // Re-throw the error to handle it upstream
+    }
 }
 
 module.exports = {
