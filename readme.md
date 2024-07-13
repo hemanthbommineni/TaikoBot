@@ -26,15 +26,12 @@ This BOT automates various tasks. Below is a detailed breakdown of the features 
 
 1. **Update the package lists:**
 
-    ```sh
-    sudo apt-get update
-    ```
-
-2. **Install git:**
-
-    ```sh
-    sudo apt-get install git
-    ```
+```sh
+sudo apt update && sudo apt upgrade -y
+```
+```sh
+sudo apt-get install screen git nano -y
+```
 
 3. **Clone the repository:**
 
@@ -101,13 +98,6 @@ To run the bot once:
 npm run start
 ```
 ### Run in the background
-
-```sh
-sudo apt update && sudo apt upgrade -y
-```
-```sh
-sudo apt-get install screen git nano -y
-```
 
 ```sh
 screen -S taiko
