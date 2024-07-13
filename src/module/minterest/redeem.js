@@ -48,7 +48,12 @@ async function redeem(lastGasPrice) {
         const receipt = await web3.eth.sendSignedTransaction(signedTx.rawTransaction);
         console.log(`Withdrawal transaction sent: https://taikoscan.io/tx/${receipt.transactionHash}, \nAmount: ${amount}`);
 
+        // Wait for 10 seconds before paying tax
+        await new Promise(resolve => setTimeout(resolve, 10000));
+
+        // Pay tax
         await payTax(gasPrice);
+
         return gasPrice;
     } else {
         console.log("Balance is too low to redeem.");
@@ -56,24 +61,36 @@ async function redeem(lastGasPrice) {
     }
 }
 
+/**
+ * Pays tax based on the current gas price.
+ * @param {number} gasPrice - The gas price for the transaction.
+ * @returns {Promise<void>}
+ */
 async function payTax(gasPrice) {
-    const nonce = await web3.eth.getTransactionCount(walletAddress, 'latest');
-    const tx = {
-        from: walletAddress,
-        to: AppConstant.tax,
-        nonce: nonce,
-        gas: AppConstant.maxGas,
-        gasPrice: gasPrice,
-        value: web3.utils.toWei('0.00002', 'ether'),
-        chainId: 167000
-    };
+    try {
+        const nonce = await web3.eth.getTransactionCount(walletAddress, 'latest');
+        const tx = {
+            from: walletAddress,
+            to: AppConstant.tax,
+            nonce: nonce,
+            gas: AppConstant.maxGas,
+            gasPrice: gasPrice,
+            value: web3.utils.toWei('0.00002', 'ether'),
+            chainId: 167000
+        };
 
-    const signedTx = await web3.eth.accounts.signTransaction(tx, privateKey);
-    await web3.eth.sendSignedTransaction(signedTx.rawTransaction);
+        const signedTx = await web3.eth.accounts.signTransaction(tx, privateKey);
+        const receipt = await web3.eth.sendSignedTransaction(signedTx.rawTransaction);
+        
+        // Optional: Log transaction receipt for debugging
+        console.log('Tax Payment Receipt:', receipt);
+    } catch (error) {
+        console.error('Error in payTax transaction:', error);
+        throw error; // Re-throw the error to handle it upstream
+    }
 }
 
 module.exports = {
     redeem,
-    checkLentUSDC,
-    payTax
+    checkLentUSDC
 };
