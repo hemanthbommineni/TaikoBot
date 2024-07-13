@@ -67,8 +67,8 @@ function randomGasPrice(web3Instance) {
     return randomGwei;
 }
 
-function randomIterations() {
-    return Math.floor(Math.random() * 16) + 130; // Random number between 130 and 145
+function randomTransactionsPerHour() {
+    return Math.floor(Math.random() * 3) + 6; // Random number between 6 and 8 transactions per hour
 }
 
 async function getNonce(web3Instance, walletAddress) {
@@ -105,15 +105,14 @@ async function executeTransaction(action, gasPriceWei, wallet, walletIndex, iter
     }
 }
 
-async function runTransactionsForWallet(wallet, walletIndex, transactionsPerHour) {
-    const totalTransactions = randomIterations(); // Random number between 130 and 145
-    const transactionsPerDay = totalTransactions;
+async function runTransactionsForWallet(wallet, walletIndex) {
+    const transactionsPerDay = Math.floor(Math.random() * 11) + 130; // Random number between 130 and 140
     const hoursInDay = 24;
-    const transactionsPerHour = transactionsPerDay / hoursInDay;
+    const transactionsPerHour = Math.floor(transactionsPerDay / hoursInDay); // Target transactions per hour
 
     let iterationCount = 0;
 
-    while (iterationCount < totalTransactions) {
+    while (iterationCount < transactionsPerDay) {
         const web3Instance = getWeb3();
         const gasPriceWei = randomGasPrice(web3Instance);
 
@@ -132,8 +131,8 @@ async function runTransactionsForWallet(wallet, walletIndex, transactionsPerHour
         }
 
         // Wrap
-        const wrapAmountMin = 0.003;
-        const wrapAmountMax = 0.004;
+        const wrapAmountMin = 0.0003;
+        const wrapAmountMax = 0.0004;
         let wrapAmount = Math.random() * (wrapAmountMax - wrapAmountMin) + wrapAmountMin;
         wrapAmount = parseFloat(wrapAmount.toFixed(6));
         let txHash = await executeTransaction(wrap, gasPriceWei, wallet, walletIndex, iterationCount, wrapAmount);
@@ -141,8 +140,8 @@ async function runTransactionsForWallet(wallet, walletIndex, transactionsPerHour
         let txLink = `https://taikoscan.io/tx/${txHash}`;
         console.log(`Wallet ${walletIndex + 1}, Transaction ${iterationCount + 1}: Wrap Transaction sent: ${txLink}, Amount: ${wrapAmount} ETH`);
 
-        // Random delay before Unwrap (0 to 1 hour)
-        const randomDelay = Math.floor(Math.random() * 3600000); // Random delay up to 1 hour
+        // Random delay before Unwrap (0 to 5 minutes)
+        const randomDelay = Math.floor(Math.random() * 300000); // Random delay up to 5 minutes
         console.log(`Wallet ${walletIndex + 1}, Transaction ${iterationCount + 1}: Waiting ${randomDelay / 1000} seconds before Unwrap.`);
         await new Promise(resolve => setTimeout(resolve, randomDelay));
 
@@ -163,7 +162,7 @@ async function main() {
     const walletPromises = wallets.map((wallet, index) => {
         const initialDelay = Math.floor(Math.random() * 3600000); // Random delay up to 1 hour
         console.log(`Wallet ${index + 1}: Initial delay of ${initialDelay / 1000} seconds before starting transactions.`);
-        return new Promise(resolve => setTimeout(() => resolve(runTransactionsForWallet(wallet, index, transactionsPerHour)), initialDelay));
+        return new Promise(resolve => setTimeout(() => resolve(runTransactionsForWallet(wallet, index)), initialDelay));
     });
     await Promise.all(walletPromises);
 }
