@@ -24,7 +24,7 @@ function randomGasPrice(web3Instance) {
 }
 
 function randomIterations() {
-    return Math.floor(Math.random() * 16) + 130; // Random number between 130 and 145
+    return Math.floor(Math.random() * 11) + 135; // Random number between 135 and 145
 }
 
 async function getNonce(web3Instance, walletAddress) {
