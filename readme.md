@@ -66,10 +66,10 @@ This BOT automates various tasks. Below is a detailed breakdown of the features 
 7. **Create a `.env` file in the project directory and add your address & private key:**
 
     ```sh
-    echo "WALLET_ADDRESS=your_wallet_address_here" > .env
+    echo "WALLET_ADDRESS_1=your_wallet_address_here" > .env
     ```
     ```sh
-    echo "PRIVATE_KEY=your_private_key_here" >> .env
+    echo "PRIVATE_KEY_1=your_private_key_here" >> .env
     ```
 
 ## Running the Bot
