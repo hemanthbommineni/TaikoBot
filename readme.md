@@ -76,8 +76,12 @@ This BOT automates various tasks. Below is a detailed breakdown of the features 
 
 confirm .env file is accurate and looks like this
 
+```sh
 cd TaikoBot
+```
+```sh
 vi .env
+```
 
 WALLET_ADDRESS=your_wallet_address_here
 PRIVATE_KEY=your_private_key_here
@@ -91,12 +95,22 @@ npm run start
 ```
 ### Run in the background
 
+```sh
 sudo apt update && sudo apt upgrade -y
+```
+```sh
 sudo apt-get install screen git nano -y
+```
 
+```sh
 screen -S taiko
+```
+```sh
 cd TaikoBot
+```
+```sh
 npm start
+```
 ### Scheduled Run
 
 To set up the bot to run every day at 1:30 AM UTC, follow these steps:
