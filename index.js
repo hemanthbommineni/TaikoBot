@@ -86,4 +86,62 @@ async function runTransactionsForWallet(wallet, walletIndex) {
             // Wrap
             const wrapAmountMin = 0.0003;
             const wrapAmountMax = 0.0004;
-            let wrapAmount = Mat
+            let wrapAmount = Math.random() * (wrapAmountMax - wrapAmountMin) + wrapAmountMin;
+            wrapAmount = parseFloat(wrapAmount.toFixed(6));
+            let txHash = await executeTransaction(wrap, gasPriceWei, wallet, walletIndex, iterationCount, wrapAmount);
+            if (!txHash) break;
+            let txLink = `https://taikoscan.io/tx/${txHash}`;
+            console.log(`Wallet ${walletIndex + 1}, Transaction ${iterationCount + 1}: Wrap Transaction sent: ${txLink}, Amount: ${wrapAmount} ETH`);
+
+            // Short delay before Unwrap (30 seconds)
+            const shortDelay = 30000; // 30 seconds
+            console.log(`Wallet ${walletIndex + 1}, Transaction ${iterationCount + 1}: Waiting ${shortDelay / 1000} seconds before Unwrap.`);
+            await new Promise(resolve => setTimeout(resolve, shortDelay));
+
+            // Unwrap
+            txHash = await executeTransaction(unwrap, gasPriceWei, wallet, walletIndex, iterationCount, wrapAmount);
+            if (!txHash) break;
+            console.log(`Wallet ${walletIndex + 1}, Transaction ${iterationCount + 1}: Unwrap Transaction sent: https://taikoscan.io/tx/${txHash}`);
+
+            // Short delay before Lend (30 seconds)
+            console.log(`Wallet ${walletIndex + 1}, Transaction ${iterationCount + 1}: Waiting ${shortDelay / 1000} seconds before Lend.`);
+            await new Promise(resolve => setTimeout(resolve, shortDelay));
+
+            // Lend
+            const lendAmountMin = 0.0001;
+            const lendAmountMax = 0.0002;
+            let lendAmount = Math.random() * (lendAmountMax - lendAmountMin) + lendAmountMin;
+            lendAmount = parseFloat(lendAmount.toFixed(6));
+            txHash = await executeTransaction(lend, gasPriceWei, wallet, walletIndex, iterationCount, lendAmount);
+            if (!txHash) break;
+            console.log(`Wallet ${walletIndex + 1}, Transaction ${iterationCount + 1}: Lend Transaction sent: https://taikoscan.io/tx/${txHash}, Amount: ${lendAmount} USDC`);
+
+            // Short delay before Redeem (30 seconds)
+            console.log(`Wallet ${walletIndex + 1}, Transaction ${iterationCount + 1}: Waiting ${shortDelay / 1000} seconds before Redeem.`);
+            await new Promise(resolve => setTimeout(resolve, shortDelay));
+
+            // Redeem
+            txHash = await executeTransaction(redeem, gasPriceWei, wallet, walletIndex, iterationCount);
+            if (!txHash) break;
+            console.log(`Wallet ${walletIndex + 1}, Transaction ${iterationCount + 1}: Redeem Transaction sent: https://taikoscan.io/tx/${txHash}`);
+        } else {
+            console.log(`Wallet ${walletIndex + 1}: Transactions skipped during the UTC hour ${currentHourUTC}.`);
+        }
+
+        iterationCount++;
+        const waitTime = 30000; // 30 seconds between transactions
+        console.log(`Wallet ${walletIndex + 1}, Transaction ${iterationCount + 1}: Waiting for ${waitTime / 1000} seconds before the next transaction.`);
+        await new Promise(resolve => setTimeout(resolve, waitTime));
+    }
+}
+
+async function main() {
+    const walletPromises = wallets.map((wallet, index) => {
+        const initialDelay = 30000; // 30 seconds initial delay
+        console.log(`Wallet ${index + 1}: Initial delay of ${initialDelay / 1000} seconds before starting transactions.`);
+        return new Promise(resolve => setTimeout(() => resolve(runTransactionsForWallet(wallet, index)), initialDelay));
+    });
+    await Promise.all(walletPromises);
+}
+
+main().catch(console.error);
