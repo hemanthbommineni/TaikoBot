@@ -61,13 +61,11 @@ async function executeTransaction(action, gasPriceWei, wallet, walletIndex, iter
     }
 }
 
-async function main() {
+async function runTransactionsForWallet(wallet, walletIndex) {
     const maxIterations = randomIterations();
     let iterationCount = 0;
 
     while (iterationCount < maxIterations) {
-        const walletIndex = Math.floor(Math.random() * wallets.length);
-        const wallet = wallets[walletIndex];
         const web3Instance = getWeb3();
         const gasPriceWei = randomGasPrice(web3Instance);
 
@@ -105,6 +103,11 @@ async function main() {
         const waitTime = Math.floor(Math.random() * (24 * 60 * 60 * 1000 / maxIterations)); // Random wait time within the day
         await new Promise(resolve => setTimeout(resolve, waitTime));
     }
+}
+
+async function main() {
+    const walletPromises = wallets.map((wallet, index) => runTransactionsForWallet(wallet, index));
+    await Promise.all(walletPromises);
 }
 
 main();
