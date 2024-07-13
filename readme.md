@@ -1,12 +1,12 @@
 # Taiko Transaction Bot
 
-This Taiko transaction bot is a daily routine bot, its job is to complete transactions within the range of 140 to 144 transactions within an UTC day, with each transaction having a randomized interval between 50 seconds to 330 seconds.
+This Taiko transaction bot is a daily routine bot, its job is to complete transactions within the range of 140 to 144 transactions within an UTC day, with each transaction has a randomized interval.
 
 ## Prerequisite
 
 To run this bot you need to:
 
-- Taiko Mainnet Account 0.05 ETH Balance.
+- Taiko Mainnet Account 0.01 ETH Balance.
 - Node.js Installed.
 
 ## BOT Feature Overview
