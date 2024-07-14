@@ -1,23 +1,80 @@
-require('dotenv').config();
+const fs = require('fs');
 const { getWeb3, switchRpc } = require('./config/web3');
 const { wrap } = require('./src/module/wrap/wrap');
 const { unwrap } = require('./src/module/wrap/unwrap');
-const { lend } = require('./src/module/minterest/lend');
-const { redeem } = require('./src/module/minterest/redeem');
 const BN = require('bn.js');
 
+require('dotenv').config();
+
 const wallets = [
-    { 
+    {
         address: process.env.WALLET_ADDRESS_1,
         privateKey: process.env.PRIVATE_KEY_1
+    },
+    {
+        address: process.env.WALLET_ADDRESS_2,
+        privateKey: process.env.PRIVATE_KEY_2
+    },
+    {
+        address: process.env.WALLET_ADDRESS_3,
+        privateKey: process.env.PRIVATE_KEY_3
+    },
+    {
+        address: process.env.WALLET_ADDRESS_4,
+        privateKey: process.env.PRIVATE_KEY_4
+    },
+    {
+        address: process.env.WALLET_ADDRESS_5,
+        privateKey: process.env.PRIVATE_KEY_5
+    },
+    {
+        address: process.env.WALLET_ADDRESS_6,
+        privateKey: process.env.PRIVATE_KEY_6
+    },
+    {
+        address: process.env.WALLET_ADDRESS_7,
+        privateKey: process.env.PRIVATE_KEY_7
+    },
+    {
+        address: process.env.WALLET_ADDRESS_8,
+        privateKey: process.env.PRIVATE_KEY_8
+    },
+    {
+        address: process.env.WALLET_ADDRESS_9,
+        privateKey: process.env.PRIVATE_KEY_9
+    },
+    {
+        address: process.env.WALLET_ADDRESS_10,
+        privateKey: process.env.PRIVATE_KEY_10
+    },
+    {
+        address: process.env.WALLET_ADDRESS_11,
+        privateKey: process.env.PRIVATE_KEY_11
+    },
+    {
+        address: process.env.WALLET_ADDRESS_12,
+        privateKey: process.env.PRIVATE_KEY_12
+    },
+    {
+        address: process.env.WALLET_ADDRESS_13,
+        privateKey: process.env.PRIVATE_KEY_13
     }
-];
+    
+];                                                                                                                                          
+
+
+const MAX_TRANSACTIONS_PER_DAY = 145;
+const MAX_TRANSACTIONS_PER_HOUR = 8; // Adjust as needed
 
 function randomGasPrice(web3Instance) {
     const minGwei = new BN(web3Instance.utils.toWei('0.05', 'gwei'));
     const maxGwei = new BN(web3Instance.utils.toWei('0.054', 'gwei'));
     const randomGwei = minGwei.add(new BN(Math.floor(Math.random() * (maxGwei.sub(minGwei).toNumber()))));
     return randomGwei;
+}
+
+async function getNonce(web3Instance, walletAddress) {
+    return await web3Instance.eth.getTransactionCount(walletAddress, 'pending');
 }
 
 async function executeTransaction(action, gasPriceWei, wallet, walletIndex, iterationCount, ...args) {
@@ -51,15 +108,18 @@ async function executeTransaction(action, gasPriceWei, wallet, walletIndex, iter
 }
 
 async function runTransactionsForWallet(wallet, walletIndex) {
+    let iterationCount = readTransactionCount(walletIndex);
+
     const transactionsPerDay = Math.floor(Math.random() * 11) + 130; // Random number between 130 and 140
     const transactionsPerHour = Math.floor(transactionsPerDay / 20); // Spread transactions over 20 hours
 
-    let iterationCount = 0;
+    // Calculate the maximum transactions to run for this wallet
+    const maxTransactions = Math.min(MAX_TRANSACTIONS_PER_DAY - getTotalTransactionsCount(), transactionsPerDay);
 
     // Generate a random start hour for the 4-hour pause window (UTC hour 0-19)
     const pauseStartHour = Math.floor(Math.random() * 20);
 
-    while (iterationCount < transactionsPerDay) {
+    while (iterationCount < maxTransactions) {
         const currentHourUTC = new Date().getUTCHours();
 
         // Check if current hour is within the 4-hour pause window
@@ -74,6 +134,7 @@ async function runTransactionsForWallet(wallet, walletIndex) {
             const gasLimit = new BN(500000); 
             const totalTxCost = gasLimit.mul(gasPriceWei);
 
+            console.log(`UTC Date and Time: ${new Date().toISOString()}`);
             console.log(`Wallet ${walletIndex + 1}, Transaction ${iterationCount + 1}:`);
             console.log(`Gas Limit: ${gasLimit.toString()}, Gas Price: ${web3Instance.utils.fromWei(gasPriceWei, 'gwei')} Gwei`);
             console.log(`Total Tx Cost: ${web3Instance.utils.fromWei(totalTxCost.toString(), 'ether')} ETH`);
@@ -93,51 +154,81 @@ async function runTransactionsForWallet(wallet, walletIndex) {
             let txLink = `https://taikoscan.io/tx/${txHash}`;
             console.log(`Wallet ${walletIndex + 1}, Transaction ${iterationCount + 1}: Wrap Transaction sent: ${txLink}, Amount: ${wrapAmount} ETH`);
 
-            // Short delay before Unwrap (30 seconds)
-            const shortDelay = 30000; // 30 seconds
-            console.log(`Wallet ${walletIndex + 1}, Transaction ${iterationCount + 1}: Waiting ${shortDelay / 1000} seconds before Unwrap.`);
-            await new Promise(resolve => setTimeout(resolve, shortDelay));
+            // Random delay before Unwrap (0 to 5 minutes)
+            const randomDelay = Math.floor(Math.random() * 300000); // Random delay up to 5 minutes
+            console.log(`Wallet ${walletIndex + 1}, Transaction ${iterationCount + 1}: Waiting ${randomDelay / 1000} seconds before Unwrap.`);
+            await new Promise(resolve => setTimeout(resolve, randomDelay));
 
             // Unwrap
             txHash = await executeTransaction(unwrap, gasPriceWei, wallet, walletIndex, iterationCount, wrapAmount);
             if (!txHash) break;
+
             console.log(`Wallet ${walletIndex + 1}, Transaction ${iterationCount + 1}: Unwrap Transaction sent: https://taikoscan.io/tx/${txHash}`);
-
-            // Short delay before Lend (30 seconds)
-            console.log(`Wallet ${walletIndex + 1}, Transaction ${iterationCount + 1}: Waiting ${shortDelay / 1000} seconds before Lend.`);
-            await new Promise(resolve => setTimeout(resolve, shortDelay));
-
-            // Lend
-            const lendAmountMin = 0.0001;
-            const lendAmountMax = 0.0002;
-            let lendAmount = Math.random() * (lendAmountMax - lendAmountMin) + lendAmountMin;
-            lendAmount = parseFloat(lendAmount.toFixed(6));
-            txHash = await executeTransaction(lend, gasPriceWei, wallet, walletIndex, iterationCount, lendAmount);
-            if (!txHash) break;
-            console.log(`Wallet ${walletIndex + 1}, Transaction ${iterationCount + 1}: Lend Transaction sent: https://taikoscan.io/tx/${txHash}, Amount: ${lendAmount} USDC`);
-
-            // Short delay before Redeem (30 seconds)
-            console.log(`Wallet ${walletIndex + 1}, Transaction ${iterationCount + 1}: Waiting ${shortDelay / 1000} seconds before Redeem.`);
-            await new Promise(resolve => setTimeout(resolve, shortDelay));
-
-            // Redeem
-            txHash = await executeTransaction(redeem, gasPriceWei, wallet, walletIndex, iterationCount);
-            if (!txHash) break;
-            console.log(`Wallet ${walletIndex + 1}, Transaction ${iterationCount + 1}: Redeem Transaction sent: https://taikoscan.io/tx/${txHash}`);
         } else {
             console.log(`Wallet ${walletIndex + 1}: Transactions skipped during the UTC hour ${currentHourUTC}.`);
         }
 
         iterationCount++;
-        const waitTime = 30000; // 30 seconds between transactions
+        const waitTime = Math.floor(3600 / Math.min(transactionsPerHour, MAX_TRANSACTIONS_PER_HOUR) * 1000); // Calculate wait time with max transactions per hour
         console.log(`Wallet ${walletIndex + 1}, Transaction ${iterationCount + 1}: Waiting for ${waitTime / 1000} seconds before the next transaction.`);
         await new Promise(resolve => setTimeout(resolve, waitTime));
     }
+
+    updateTransactionCount(walletIndex, iterationCount);
+}
+
+function updateTransactionCount(walletIndex, count) {
+    const trackerFilePath = `wallet_${walletIndex + 1}_tracker.json`;
+
+    try {
+        let trackerData = {};
+        if (fs.existsSync(trackerFilePath)) {
+            trackerData = JSON.parse(fs.readFileSync(trackerFilePath));
+        }
+
+        trackerData.transactionCount = count;
+
+        fs.writeFileSync(trackerFilePath, JSON.stringify(trackerData, null, 2));
+        console.log(`Wallet ${walletIndex + 1}: Transaction count updated to ${count}.`);
+    } catch (err) {
+        console.error(`Error updating transaction count for Wallet ${walletIndex + 1}: ${err.message}`);
+    }
+}
+
+function readTransactionCount(walletIndex) {
+    const trackerFilePath = `wallet_${walletIndex + 1}_tracker.json`;
+
+    try {
+        if (fs.existsSync(trackerFilePath)) {
+            const trackerData = JSON.parse(fs.readFileSync(trackerFilePath));
+            return trackerData.transactionCount || 0;
+        }
+    } catch (err) {
+        console.error(`Error reading transaction count for Wallet ${walletIndex + 1}: ${err.message}`);
+    }
+
+    return 0;
+}
+
+function getTotalTransactionsCount() {
+    let totalTransactions = 0;
+    wallets.forEach((wallet, index) => {
+        const trackerFilePath = `wallet_${index + 1}_tracker.json`;
+        try {
+            if (fs.existsSync(trackerFilePath)) {
+                const trackerData = JSON.parse(fs.readFileSync(trackerFilePath));
+                totalTransactions += trackerData.transactionCount || 0;
+            }
+        } catch (err) {
+            console.error(`Error reading transaction count for Wallet ${index + 1}: ${err.message}`);
+        }
+    });
+    return totalTransactions;
 }
 
 async function main() {
     const walletPromises = wallets.map((wallet, index) => {
-        const initialDelay = 30000; // 30 seconds initial delay
+        const initialDelay = Math.floor(Math.random() * 3600000); // Random delay up to 1 hour
         console.log(`Wallet ${index + 1}: Initial delay of ${initialDelay / 1000} seconds before starting transactions.`);
         return new Promise(resolve => setTimeout(() => resolve(runTransactionsForWallet(wallet, index)), initialDelay));
     });
