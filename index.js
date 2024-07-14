@@ -260,11 +260,14 @@ function readDailyTransactionCount(walletIndex) {
 }
 
 async function main() {
-    for (let i = 0; i < wallets.length; i++) {
-        console.log(`Starting transactions for Wallet ${i + 1}`);
-        await runTransactionsForWallet(wallets[i], i);
-        console.log(`Transactions for Wallet ${i + 1} completed.`);
-    }
+    const walletPromises = wallets.map((wallet, index) => {
+        console.log(`Starting transactions for Wallet ${index + 1}`);
+        return runTransactionsForWallet(wallet, index);
+    });
+
+    await Promise.all(walletPromises);
+
+    console.log("All wallet transactions completed.");
 }
 
 main().catch(err => console.error(`Error in main execution: ${err.message}`));
