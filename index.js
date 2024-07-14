@@ -1,4 +1,5 @@
 const fs = require('fs');
+const path = require('path');
 const { getWeb3, switchRpc } = require('./config/web3');
 const { wrap } = require('./src/module/wrap/wrap');
 const { unwrap } = require('./src/module/wrap/unwrap');
@@ -66,6 +67,8 @@ const wallets = [
 const MAX_TRANSACTIONS_PER_DAY = 145;
 const MAX_TRANSACTIONS_PER_HOUR = 8; // Adjust as needed
 
+const TRACKER_FOLDER = path.join(__dirname, 'Taikobot', 'tracker');
+
 function randomGasPrice(web3Instance) {
     const minGwei = new BN(web3Instance.utils.toWei('0.05', 'gwei'));
     const maxGwei = new BN(web3Instance.utils.toWei('0.054', 'gwei'));
@@ -88,11 +91,28 @@ async function executeTransaction(action, gasPriceWei, wallet, walletIndex, iter
 
             if (balance.lt(totalTxCost)) {
                 console.log(`Wallet ${walletIndex + 1}: Insufficient funds to cover the transaction cost. Transaction skipped.`);
-                return;
+                return false;
             }
 
             const localNonce = await getNonce(web3Instance, wallet.address);
-            return await action(...args, gasPriceWei.toString(), localNonce, wallet.address, wallet.privateKey);
+            const txHash = await action(...args, gasPriceWei.toString(), localNonce, wallet.address, wallet.privateKey);
+
+            if (txHash) {
+                console.log(`Wallet ${walletIndex + 1}, Transaction ${iterationCount + 1}: Transaction sent. Waiting for confirmation...`);
+
+                // Wait for transaction confirmation (adjust as per your requirement)
+                const receipt = await web3Instance.eth.getTransactionReceipt(txHash);
+                if (receipt && receipt.status) {
+                    console.log(`Wallet ${walletIndex + 1}, Transaction ${iterationCount + 1}: Transaction successful. TxHash: ${txHash}`);
+                    return txHash;
+                } else {
+                    console.log(`Wallet ${walletIndex + 1}, Transaction ${iterationCount + 1}: Transaction failed. TxHash: ${txHash}`);
+                    return false;
+                }
+            } else {
+                console.log(`Wallet ${walletIndex + 1}, Transaction ${iterationCount + 1}: Transaction failed to send.`);
+                return false;
+            }
         } catch (error) {
             console.error(`Wallet ${walletIndex + 1}, Transaction ${iterationCount + 1}: Error executing transaction: ${error.message}`);
             if (error.message.includes("Invalid JSON RPC response")) {
@@ -116,6 +136,9 @@ async function runTransactionsForWallet(wallet, walletIndex) {
 
     // Generate a random start hour for the 4-hour pause window (UTC hour 0-19)
     const pauseStartHour = Math.floor(Math.random() * 20);
+
+    // Wait before starting transactions to stagger wallet activity
+    await waitBeforeStart(walletIndex);
 
     while (iterationCount < MAX_TRANSACTIONS_PER_DAY) {
         const currentDate = new Date().toISOString().slice(0, 10); // Get current UTC date (YYYY-MM-DD)
@@ -175,8 +198,6 @@ async function runTransactionsForWallet(wallet, walletIndex) {
         }
 
         iterationCount++;
-        updateTransactionCount(walletIndex, iterationCount);
-        updateDailyTransactionCount(walletIndex, currentDate, dailyTransactionCount + 1);
 
         const waitTime = Math.floor(3600 / transactionsPerHour * 1000); // Calculate wait time in milliseconds for even distribution
         console.log(`Wallet ${walletIndex + 1}, Transaction ${iterationCount + 1}: Waiting for ${waitTime / 1000} seconds before the next transaction.`);
@@ -184,8 +205,14 @@ async function runTransactionsForWallet(wallet, walletIndex) {
     }
 }
 
+async function waitBeforeStart(walletIndex) {
+    const initialDelay = Math.floor(Math.random() * 3600000); // Random delay up to 1 hour
+    console.log(`Wallet ${walletIndex + 1}: Initial delay of ${initialDelay / 1000} seconds before starting transactions.`);
+    await new Promise(resolve => setTimeout(resolve, initialDelay));
+}
+
 function updateTransactionCount(walletIndex, count) {
-    const trackerFilePath = `wallet_${walletIndex + 1}_tracker.json`;
+    const trackerFilePath = path.join(TRACKER_FOLDER, `wallet_${walletIndex + 1}_tracker.json`);
 
     try {
         let trackerData = {};
@@ -203,7 +230,7 @@ function updateTransactionCount(walletIndex, count) {
 }
 
 function readTransactionCount(walletIndex) {
-    const trackerFilePath = `wallet_${walletIndex + 1}_tracker.json`;
+    const trackerFilePath = path.join(TRACKER_FOLDER, `wallet_${walletIndex + 1}_tracker.json`);
 
     try {
         if (fs.existsSync(trackerFilePath)) {
@@ -218,12 +245,12 @@ function readTransactionCount(walletIndex) {
 }
 
 function readDailyTransactionCount(walletIndex) {
-    const trackerFilePath = `wallet_${walletIndex + 1}_tracker.json`;
+    const trackerFilePath = path.join(TRACKER_FOLDER, `wallet_${walletIndex + 1}_tracker.json`);
 
     try {
         if (fs.existsSync(trackerFilePath)) {
             const trackerData = JSON.parse(fs.readFileSync(trackerFilePath));
-            return trackerData.dailyCounts || {};
+            return trackerData.dailyTransactionCount || {};
         }
     } catch (err) {
         console.error(`Error reading daily transaction count for Wallet ${walletIndex + 1}: ${err.message}`);
@@ -232,33 +259,12 @@ function readDailyTransactionCount(walletIndex) {
     return {};
 }
 
-function updateDailyTransactionCount(walletIndex, currentDate, count) {
-    const trackerFilePath = `wallet_${walletIndex + 1}_tracker.json`;
-
-    try {
-        let trackerData = {};
-        if (fs.existsSync(trackerFilePath)) {
-            trackerData = JSON.parse(fs.readFileSync(trackerFilePath));
-        }
-
-        if (!trackerData.dailyCounts) {
-            trackerData.dailyCounts = {};
-        }
-
-        trackerData.dailyCounts[currentDate] = {
-            transactionCount: count
-        };
-
-        fs.writeFileSync(trackerFilePath, JSON.stringify(trackerData, null, 2));
-        console.log(`Wallet ${walletIndex + 1}: Daily transaction count updated to ${count} for ${currentDate}.`);
-    } catch (err) {
-        console.error(`Error updating daily transaction count for Wallet ${walletIndex + 1}: ${err.message}`);
+async function main() {
+    for (let i = 0; i < wallets.length; i++) {
+        console.log(`Starting transactions for Wallet ${i + 1}`);
+        await runTransactionsForWallet(wallets[i], i);
+        console.log(`Transactions for Wallet ${i + 1} completed.`);
     }
 }
 
-async function main() {
-    const promises = wallets.map((wallet, index) => runTransactionsForWallet(wallet, index));
-    await Promise.all(promises);
-}
-
-main().catch(err => console.error('Error running transactions:', err));
+main().catch(err => console.error(`Error in main execution: ${err.message}`));
