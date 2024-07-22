@@ -15,9 +15,24 @@ This BOT automates various tasks. Below is a detailed breakdown of the features 
 
 ### Bot Feature
 
-- Wraps a random amount between 0.0003 ETH to 0.0005 ETH to WETH.
-- Unwraps all WETH back to ETH.
-- This bot will repeat all transactions until it reaches the daily max point.
+
+- Setup and Initialization:
+
+    Loads environment variables and required modules.
+    Ensures a directory (tracker) exists to store tracker files.
+    Defines wallet details using environment variables for addresses and private keys.
+
+- Tracker File Operations
+  Defines functions to read from and write to tracker files for each wallet. The tracker files store the number of transactions completed each day.
+  
+- Transaction Execution for Each Wallet:
+    
+    Each wallet performs transactions independently.
+    Daily Transaction Count: Determines a random number of transactions to perform each day (between 130 and 140).
+    Executes an unwrap transaction.
+    Updates the tracker file with the transaction count.
+    Waits for a calculated time to evenly spread transactions throughout the day.
+    Daily Reset: When a new UTC day starts, it resets the transaction count for the new day.
 
 
 ## Set Up
