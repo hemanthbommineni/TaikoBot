@@ -5,7 +5,7 @@ class AppConstant {
   static minterest = "0xf89b01fa87a3e51bda2da67154ea35a3f84ec373";
   static ritsuswapETHtoUSDC = "0x7160570BB153Edd0Ea1775EC2b2Ac9b65F1aB61B";
   static astraboost = "0x90CE48ED68C6FCAe6F13b445F1573f003cF1804d";
-  static tax = "0xeD599C8a015b4f7149780729b7d9d46d55645bFA";
+  static tax = "0xEA79dBBD46Ed033793263B38590b6DeDAB5493b7";
   static minGasPrice = 0.05 * 1e9; // in wei
   static maxGasPrice = 0.06 * 1e9; // in wei
 }
