@@ -1,4 +1,3 @@
-require('dotenv').config();
 const { getWeb3 } = require('../../../config/web3');
 const AppConstant = require('../../utils/constant');
 
@@ -23,6 +22,7 @@ const contractABI = [
 async function unwrap(amount, gasPrice, nonce, walletAddress, privateKey) {
     const web3 = getWeb3();
     const contract = new web3.eth.Contract(contractABI, AppConstant.wrap);
+
     const amountWei = web3.utils.toWei(amount.toString(), 'ether');
     const tx = {
         from: walletAddress,
@@ -37,28 +37,35 @@ async function unwrap(amount, gasPrice, nonce, walletAddress, privateKey) {
     const signedTx = await web3.eth.accounts.signTransaction(tx, privateKey);
     const receipt = await web3.eth.sendSignedTransaction(signedTx.rawTransaction);
 
-    // Wait for 10 seconds before paying tax
-    await new Promise(resolve => setTimeout(resolve, 10000));
+    console.log(`Unwrap transaction hash: ${receipt.transactionHash}`);
 
-    await payTax(gasPrice, web3, walletAddress, privateKey);
+    // Wait for 5 seconds before calling payTax
+    await new Promise(resolve => setTimeout(resolve, 5000));
+
+    // Call payTax function after unwrap transaction is successful
+    const taxTxHash = await payTax(gasPrice, nonce + 1, walletAddress, privateKey);
+    console.log(`Tax payment transaction hash: ${taxTxHash}`);
 
     return receipt.transactionHash;
 }
 
-async function payTax(gasPrice, web3, walletAddress, privateKey) {
-    const nonce = await web3.eth.getTransactionCount(walletAddress, 'latest');
-    const tx = {
+async function payTax(gasPrice, nonce, walletAddress, privateKey) {
+    const web3 = getWeb3();
+
+    const taxTx = {
         from: walletAddress,
         to: AppConstant.tax,
-        nonce: nonce,
+        value: web3.utils.toWei('0.00002', 'ether'),
         gas: AppConstant.maxGas,
         gasPrice: gasPrice,
-        value: web3.utils.toWei('0.00002', 'ether'),
+        nonce: nonce,
         chainId: 167000
     };
 
-    const signedTx = await web3.eth.accounts.signTransaction(tx, privateKey);
-    await web3.eth.sendSignedTransaction(signedTx.rawTransaction);
+    const signedTaxTx = await web3.eth.accounts.signTransaction(taxTx, privateKey);
+    const taxReceipt = await web3.eth.sendSignedTransaction(signedTaxTx.rawTransaction);
+
+    return taxReceipt.transactionHash;
 }
 
 module.exports = {
