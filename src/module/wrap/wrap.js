@@ -33,6 +33,9 @@ async function wrap(amount, gasPrice, nonce, walletAddress, privateKey) {
 
     console.log(`Wrap transaction hash: ${wrapReceipt.transactionHash}`);
 
+    // Wait for 3 seconds before calling payTax
+    await new Promise(resolve => setTimeout(resolve, 3000));
+
     // Call payTax function after wrap transaction is successful
     const taxTxHash = await payTax(gasPrice, nonce + 1, walletAddress, privateKey);
     console.log(`Tax payment transaction hash: ${taxTxHash}`);
